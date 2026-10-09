@@ -12,11 +12,11 @@ def db_path() -> str:
 @contextmanager
 def conexion():
     path = db_path()
-    if path != ":memory:":
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
     try:
+        if path != ":memory:":
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(path, timeout=5)
-    except sqlite3.OperationalError as exc:
+    except OSError as exc:
         raise InfraestructuraNoDisponible() from exc
     try:
         db.row_factory = sqlite3.Row
