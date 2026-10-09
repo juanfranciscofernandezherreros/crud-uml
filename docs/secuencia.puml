@@ -1,0 +1,83 @@
+@startuml
+title CRUD usuarios: cliente -> controller -> service -> repository -> BD
+actor Cliente
+participant Controller
+participant Service
+participant Repository
+database BD
+note over Cliente,BD
+Cada grupo es una petición independiente.
+Auth 401 / permisos 403 antes de CRUD.
+end note
+group POST /usuarios
+Cliente -> Controller: crear(datos)
+Controller -> Service: crear(datos)
+alt inválido
+Service --> Controller: validación
+Controller --> Cliente: 400
+else válido
+Service -> Repository: existe_email(email)
+Repository -> BD: SELECT
+alt existe
+Repository --> Service: sí
+Service --> Controller: Conflicto
+Controller --> Cliente: 409
+else libre
+Service -> Repository: guardar(usuario)
+Repository -> BD: INSERT UNIQUE
+alt insert correcto
+BD --> Controller: usuario (vía capas)
+Controller --> Cliente: 201 + Location
+else BD falla
+BD --> Repository: error
+Repository --> Controller: error traducido (vía Service)
+Controller --> Cliente: 409 / 503 / 500
+end
+end
+end
+end
+group GET /usuarios/{id}
+Cliente -> Controller: obtener(id)
+Controller -> Service: obtener(id)
+Service -> Repository: buscar(id)
+Repository -> BD: SELECT
+alt existe
+BD --> Controller: usuario (vía capas)
+Controller --> Cliente: 200
+else ausente
+Controller --> Cliente: 404
+else BD caída
+Controller --> Cliente: 503
+end
+end
+group PUT /usuarios/{id}
+Cliente -> Controller: actualizar(id, datos)
+Controller -> Service: actualizar
+alt inválido
+Controller --> Cliente: 400
+else válido
+Service -> Repository: buscar / existe_email / actualizar
+Repository -> BD: SELECT / UPDATE
+alt no existe
+Controller --> Cliente: 404
+else duplicado
+Controller --> Cliente: 409
+else éxito
+Controller --> Cliente: 200
+end
+end
+end
+group DELETE /usuarios/{id}
+Cliente -> Controller: eliminar(id)
+Controller -> Service: eliminar
+Service -> Repository: buscar / eliminar
+Repository -> BD: SELECT / DELETE (FK RESTRICT)
+alt no existe
+Controller --> Cliente: 404
+else dependencias protegidas
+Controller --> Cliente: 409
+else éxito
+Controller --> Cliente: 204
+end
+end
+@enduml
