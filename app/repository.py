@@ -16,7 +16,7 @@ def conexion():
         if path != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(path, timeout=5)
-    except OSError as exc:
+    except (OSError, sqlite3.OperationalError) as exc:
         raise InfraestructuraNoDisponible() from exc
     try:
         db.row_factory = sqlite3.Row
